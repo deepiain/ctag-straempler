@@ -12,6 +12,7 @@
 #include "ui_events.h"
 #include "mp3.h"
 #include "esp_vfs_fat.h"
+#include <stdint.h>
 
 #define MAX_FRAME_SIZE 4096
 
@@ -33,7 +34,7 @@ void initMP3Engine(xQueueHandle queueui){
 
 static void decode(FIL *mp3File, FIL* rawOut, int sz){
     ui_ev_ts_t ev;
-    int toRead = sz, progress = 0;
+    uint32_t toRead = sz, progress = 0;
     ev.event = EV_DECODING_PROGRESS;
     HMP3Decoder decoder = MP3InitDecoder();
 

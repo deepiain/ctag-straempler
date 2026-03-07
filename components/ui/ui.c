@@ -60,11 +60,11 @@ static void ui_ev_loop(void* pvParams)
                 case EV_ENC1_BT_DWN:
                     last = timeval_durationBeforeNow(&lastBtnEv);
                     //ESP_LOGI("UI", "DOWN %u", last);
-                    if(last < 120 || btn_state == EV_ENC1_BT_DWN) break;
+                    if(last < 30 || btn_state == EV_ENC1_BT_DWN) break;
                     gettimeofday(&lastBtnEv, NULL);
                     btn_state = EV_ENC1_BT_DWN;
                     btn_serviced = 0;
-                    setTimerSingleShot(500, ui_ev_queue);       
+                    setTimerSingleShot(350, ui_ev_queue);
                     break;
                 case EV_ENC1_BT_UP:
                     last = timeval_durationBeforeNow(&lastBtnEv);
@@ -177,7 +177,7 @@ static void timerRepeatFast(){
         //ESP_LOGI("", "Tick");
         ev.event = EV_TIMER_REPEATING_FAST;
         xQueueSend(ui_ev_queue, &ev, portMAX_DELAY);
-        vTaskDelay(300 / portTICK_RATE_MS);
+        vTaskDelay(100 / portTICK_RATE_MS);
     }
     vTaskDelete(NULL);
 }
