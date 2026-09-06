@@ -33,11 +33,11 @@ static void IRAM_ATTR gpio_isr_handler_encoder1(void* arg)
     }
     // real event
     if(check == ENC_A_PIN && !a && !b){
-        ev.event = EV_ENC1_BWD;
+        ev.event = EV_ENC1_FWD;
         xQueueSendFromISR(ui_event_queue, &ev, NULL);
     }
     if(check == ENC_B_PIN && !a && !b){
-        ev.event = EV_ENC1_FWD;
+        ev.event = EV_ENC1_BWD;
         xQueueSendFromISR(ui_event_queue, &ev, NULL);
     }
     check = 0;
