@@ -17,34 +17,42 @@ jobs:
 
     steps:
       - name: Checkout repository and submodules
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
+      # Inlined replacement for ctag-fh-kiel/esp-idf-action@strampler.
+      # That action swaps IDF onto the ctag idf4_1-strampler branch but never
+      # reinstalls the tools for that revision, so export.sh aborts with
+      # "tool openocd-esp32 has no installed versions". Running install.sh
+      # after the checkout fixes it.
       - name: Build binaries
-        uses: ctag-fh-kiel/esp-idf-action@strampler
-      - name: Archive binaries
         run: |
-          zip --junk-paths binaries build/*.bin build/bootloader/*.bin build/partition_table/*.bin
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          docker run --rm -v "$PWD":/project -w /project espressif/idf:release-v4.1 bash -c '
+            set -e
+            git config --global --add safe.directory "*" || true
+            cd $IDF_PATH
+            git remote add ctag https://github.com/ctag-fh-kiel/esp-idf.git
+            git fetch ctag
+            git checkout ctag/idf4_1-strampler
+            git submodule update --init --recursive
+            ./install.sh
+            . ./export.sh
+            cd /project
+            idf.py build
+          '
+      - name: Collect binaries
+        run: |
+          sudo chown -R "$USER" build
+          mkdir -p artifacts
+          cp build/ctag-straempler.bin \
+             build/bootloader/bootloader.bin \
+             build/partition_table/partition-table.bin \
+             artifacts/
+          ls -l artifacts
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ github.sha }}
-          release_name: Bleeding-edge-${{ github.sha }}
-          body: |
-            This is a draft-release, it may not be functional, use at own risk, know what you do!
-          draft: true
-          prerelease: true
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./binaries.zip
-          asset_name: binaries.zip
-          asset_content_type: application/zip
+          name: straempler-binaries
+          path: artifacts/*.bin
+          if-no-files-found: error
